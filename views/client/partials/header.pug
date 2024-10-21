@@ -1,0 +1,16 @@
+
+header.header
+  .container
+    .row.align-items-center
+      .col-3
+      .col-4
+        .inner-menu
+          ul
+            if(user)
+              li 
+                a(href="/chat/logout") Đăng xuất
+            else
+              li 
+                a(href="/chat/login") Đăng nhập
+              li 
+                a(href="/chat/register") Đăng kí

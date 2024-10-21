@@ -1,0 +1,45 @@
+extends ../../layouts/default.pug 
+include ../../mixins/box-head.pug 
+
+block main 
+    .container.my-3 
+        .row 
+            .col-12 
+                +box-head(pageTitle)
+
+        .row
+            .col-12
+                .chat(my-id=user.id)
+                    .inner-body
+                      each chat in chats 
+                        div(
+                            class=(
+                            user.id != chat.userId ?
+                            "inner-incoming"
+                            :
+                            "inner-outgoing"
+                            )
+                        )
+                            if(user.id != chat.userId)
+                                .inner-name #{chat.fullName}
+                            .inner-content
+                              | #{chat.content}
+                                  
+                    .inner-foot
+                        form(
+                            class="inner-form"
+                            action=""
+                        )
+                            input(
+                                type="text"
+                                placeholder="Nhập nội dung..."
+                                name="content"
+                            )
+
+                            span(class="button-icon btn btn-light mx-1")
+                                i(class="fa-regular fa-face-smile") 
+
+                            button
+                                i.fa-solid.fa-paper-plane
+                        div(class="tooltip" role="tooltip")
+                            emoji-picker(class="light")
