@@ -5,6 +5,7 @@ const controller = require('../../controllers/client/chat.controller')
 
 const userMiddleware = require('../../middlewares/client/user.middleware');
 
+
 router.get(
     "/", 
     userMiddleware.requireAuth,

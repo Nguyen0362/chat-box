@@ -4,7 +4,6 @@ const userRoute = require('./user.route');
 
 
 module.exports = (app) => {
-    //app.use(userMiddleware.requireAuth);
 
     app.use(
         "/chat",
@@ -12,7 +11,7 @@ module.exports = (app) => {
     );
 
     app.use(
-        "/chat",
+        "/user",
         userRoute
     );
 }

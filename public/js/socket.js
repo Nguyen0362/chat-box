@@ -5,17 +5,28 @@ var socket = io();
 const formChat = document.querySelector(".chat .inner-form")
 
 if(formChat){
+    const upload = new FileUploadWithPreview.FileUploadWithPreview('upload-images', {
+        multiple: true,
+        maxFileCount: 6
+    });
+
     formChat.addEventListener("submit", (event) => {
         event.preventDefault();
 
         const content = formChat.content.value;
-        if(content){
+
+        const images = upload.cachedFileArray || [];
+
+        if(content || images.length > 0){
             const data = {
-                content: content
+                content: content,
+                images: images
             }
             socket.emit("CLIENT_SEND_MESSAGE", data);
 
             formChat.content.value = "";
+
+            upload.resetPreviewPanel();
         }
     })
 }
@@ -32,18 +43,43 @@ socket.on("SERVER_RETURN_MESSAGE", (data) => {
     if(myId == data.userId){
         div.classList.add("inner-outgoing");
     } else{
-        htmlFullName = data.fullName;
         div.classList.add("inner-incoming");
+        htmlFullName = `<div class="inner-name">${data.fullName}</div>`;
+    }
+
+    let htmlContent = "";
+
+    if(data.content) {
+        htmlContent = `
+        <div class="inner-content">${data.content}</div>
+        `;
+    }
+
+    let htmlImages = "";
+
+    if(data.images.length > 0) {
+        htmlImages += `<div class="inner-images">`;
+        for (const image of data.images) {
+        htmlImages += `<img src="${image}" />`;
+        }
+        htmlImages += `</div>`;
     }
 
     div.innerHTML = `
         ${htmlFullName}
-        <div class="inner-content">${data.content}</div>
+        ${htmlContent}
+        ${htmlImages}
     `;
 
-    body.appendChild(div);
+    const elementListTyping = document.querySelector(".chat .inner-list-typing");
 
-    bodyChat.scrollTop = bodyChat.scrollHeight;
+    body.insertBefore(div, elementListTyping);
+
+    new Viewer(div);
+
+    socket.emit("CLIENT_SEND_TYPING", false);
+
+    body.scrollTop = body.scrollHeight;
 })
 // End SERVER_RETURN_MESSAGE
 
@@ -51,6 +87,10 @@ socket.on("SERVER_RETURN_MESSAGE", (data) => {
 const bodyChat = document.querySelector(".chat .inner-body");
 if(bodyChat) {
   bodyChat.scrollTop = bodyChat.scrollHeight;
+
+  //ViewerJS
+  new Viewer(bodyChat);
+  //End ViewerJS
 }
 // End Scroll Chat To Bottom
 
@@ -71,6 +111,90 @@ if(emojiPicker){
     emojiPicker.addEventListener('emoji-click', event => {
         inputChat.value = inputChat.value + event.detail.unicode;
     });
+
+    var timeOutTyping;
+
+    inputChat.addEventListener("keyup", () => {
+        socket.emit("CLIENT_SEND_TYPING", true);
+
+        clearTimeout(timeOutTyping);
+
+        timeOutTyping = setTimeout(() => {
+            socket.emit("CLIENT_SEND_TYPING", false);
+        }, 3000);
+    })
 }
 
+
 //End show icon
+
+// SERVER_RETURN_TYPING
+const elementListTyping = document.querySelector(".chat .inner-list-typing");
+
+if(elementListTyping){
+    socket.on("SERVER_RETURN_TYPING", (data) => {
+        if(data.type){
+            const existBoxTyping = elementListTyping.querySelector(`.box-typing[user-id="${data.userId}"]`);
+            
+            if(!existBoxTyping){
+                const boxTyping = document.createElement("div");
+                boxTyping.classList.add("box-typing");
+                boxTyping.setAttribute("user-id", data.userId);
+
+                boxTyping.innerHTML = `
+                    <div class="inner-name">${data.fullName}</div>
+                    <div class="inner-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                `;
+
+                elementListTyping.appendChild(boxTyping);
+                
+                bodyChat.scrollTop = bodyChat.scrollHeight;
+            }
+        } else {
+            const existBoxTyping = elementListTyping.querySelector(`.box-typing[user-id="${data.userId}"]`);
+
+            if(existBoxTyping){
+                elementListTyping.removeChild(existBoxTyping);
+            }
+        }
+    })
+}
+
+// END SERVER_RETURN_TYPING
+
+// Chức năng gửi yêu cầu
+const listBtnAddFriend = document.querySelectorAll("[btn-add-friend]");
+
+if(listBtnAddFriend.length > 0){
+    listBtnAddFriend.forEach(button => {
+        button.addEventListener("click", () => {
+            const userIdB = button.getAttribute("btn-add-friend");
+
+            button.closest(".box-user").classList.add("add");
+
+            socket.emit("CLIENT_ADD_FRIEND", userIdB);
+        })
+    })
+}
+// Hết chức năng gửi yêu cầu
+
+// Chức năng gửi yêu cầu
+const listBtnCancelFriend = document.querySelectorAll("[btn-cancel-friend]");
+console.log(listBtnAddFriend);
+
+if(listBtnCancelFriend.length > 0){
+    listBtnCancelFriend.forEach(button => {
+        button.addEventListener("click", () => {
+            const userIdB = button.getAttribute("btn-cancel-friend");
+
+            button.closest(".box-user").classList.remove("add");
+
+            socket.emit("CLIENT_CANCEL_FRIEND", userIdB);
+        })
+    })
+}
+// Hết chức năng gửi yêu cầu
