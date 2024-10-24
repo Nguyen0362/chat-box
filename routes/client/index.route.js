@@ -4,7 +4,6 @@ const userRoute = require('./user.route');
 
 
 module.exports = (app) => {
-
     app.use(
         "/chat",
         chatRoute
@@ -14,5 +13,9 @@ module.exports = (app) => {
         "/user",
         userRoute
     );
+
+    app.use("/", (req, res) => {
+         res.redirect("/user/login");
+    })
 }
 
