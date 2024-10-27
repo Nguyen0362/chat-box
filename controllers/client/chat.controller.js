@@ -18,7 +18,7 @@ module.exports.index = async (req, res) => {
                 userId: res.locals.user.id,
                 // roomChatId: String,
                 content: data.content,
-                //images: image,
+                images: images,
             };
             // Lưu tin nhắn vào database
             const chat = new Chat(dataChat);
@@ -28,7 +28,7 @@ module.exports.index = async (req, res) => {
                 userId: res.locals.user.id,
                 fullName: res.locals.user.fullName,
                 content: data.content,
-                //images: image
+                images: images
             });
         });
 

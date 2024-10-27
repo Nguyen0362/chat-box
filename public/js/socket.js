@@ -182,9 +182,8 @@ if(listBtnAddFriend.length > 0){
 }
 // Hết chức năng gửi yêu cầu
 
-// Chức năng gửi yêu cầu
+// Chức năng hủy gửi yêu cầu
 const listBtnCancelFriend = document.querySelectorAll("[btn-cancel-friend]");
-console.log(listBtnAddFriend);
 
 if(listBtnCancelFriend.length > 0){
     listBtnCancelFriend.forEach(button => {
@@ -197,4 +196,36 @@ if(listBtnCancelFriend.length > 0){
         })
     })
 }
-// Hết chức năng gửi yêu cầu
+// Hết chức năng hủy gửi yêu cầu
+
+// Chức năng hủy kết bạn
+const listBtnRefuseFriend = document.querySelectorAll("[btn-refuse-friend");
+
+if(listBtnRefuseFriend){
+    listBtnRefuseFriend.forEach(button => {
+        button.addEventListener("click", () => {
+            const userIdB = button.getAttribute("btn-refuse-friend");
+
+            button.closest(".box-user").classList.add("refuse");
+
+            socket.emit("CLIENT_REFUSE_FRIEND", userIdB);
+        })
+    })
+}
+// Hết chức năng hủy kết bạn
+
+// Chức năng chấp nhận kết bạn
+const listBtnAcceptFriend = document.querySelectorAll("[btn-accept-friend");
+
+if(listBtnAcceptFriend){
+    listBtnAcceptFriend.forEach(button => {
+        button.addEventListener("click", () => {
+            const userIdB = button.getAttribute("btn-accept-friend");
+
+            button.closest(".box-user").classList.add("accepted");
+
+            socket.emit("CLIENT_ACCEPT_FRIEND", userIdB);
+        })
+    })
+}
+// Hết chức năng chấp nhận kết bạn
