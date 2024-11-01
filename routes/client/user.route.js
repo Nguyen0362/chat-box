@@ -39,5 +39,23 @@ router.get(
     controller.friends
 );
 
+router.get(
+    "/rooms", 
+    userMiddleware.requireAuth,
+    controller.rooms
+);
+
+router.get(
+    "/rooms/create", 
+    userMiddleware.requireAuth,
+    controller.createRoom
+);
+
+router.post(
+    "/rooms/create", 
+    userMiddleware.requireAuth,
+    controller.createRoomPost
+);
+
 module.exports = router;
 

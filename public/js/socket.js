@@ -229,3 +229,109 @@ if(listBtnAcceptFriend){
     })
 }
 // Hết chức năng chấp nhận kết bạn
+
+// SERVER_RETURN_LENGTH_ACCEPT_FRIENDS
+socket.on("SERVER_RETURN_LENGTH_ACCEPT_FRIENDS", (data) => {
+    const badgeUserAccept  = document.querySelector(`[badge-user-accept="${data.userIdB}"]`);
+
+    if(badgeUserAccept){
+        badgeUserAccept.innerHTML = data.length;
+    }
+})
+// END SERVER_RETURN_LENGTH_ACCEPT_FRIENDS
+
+// SERVER_RETURN_INFO_ACCEPT_FRIENDS
+socket.on("SERVER_RETURN_INFO_ACCEPT_FRIENDS", (data) => {
+    const listAcceptFriends = document.querySelector(`[list-accept-friends="${data.userIdB}"]`);
+    if(listAcceptFriends){
+        const newUser = document.createElement("div");
+        newUser.classList.add("col-6");
+        newUser.setAttribute("user-id", data.userIdA);
+        newUser.innerHTML = `
+            <div class="box-user">
+                <div class="inner-avatar">
+                    <img src="https://robohash.org/hicveldicta.png" alt="${data.fullNameA}" />
+                </div>
+                <div class="inner-info">
+                    <div class="inner-name">${data.fullNameA}</div>
+                    <div class="inner-buttons">
+                        <button 
+                            class="btn btn-sm btn-primary mr-1"
+                            btn-accept-friend="${data.userIdA}"
+                        >
+                            Chấp nhận
+                        </button>
+                        <button
+                            class="btn btn-sm btn-secondary mr-1"
+                            btn-refuse-friend="${data.userIdA}"
+                        >
+                            Xóa
+                        </button>
+                        <button 
+                            class="btn btn-sm btn-secondary mr-1" 
+                            btn-deleted-friend="" 
+                            disabled=""
+                        >
+                            Đã xóa
+                        </button>
+                        <button 
+                            class="btn btn-sm btn-primary mr-1" 
+                            btn-accepted-friend="" 
+                            disabled=""
+                        >
+                            Đã chấp nhận
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        listAcceptFriends.appendChild(newUser);
+
+        // Chấp nhận kết bạn
+        const btnAcceptFriend = newUser.querySelector("[btn-accept-friend]");
+        btnAcceptFriend.addEventListener("click", () => {
+          btnAcceptFriend.closest(".box-user").classList.add("accepted");
+          socket.emit("CLIENT_ACCEPT_FRIEND", data.userIdA);
+        })
+
+        // Không chấp nhận kết bạn
+        const btnRefuseFriend = newUser.querySelector("[btn-refuse-friend]");
+        btnRefuseFriend.addEventListener("click", () => {
+            btnRefuseFriend.closest(".box-user").classList.add("refuse");
+            socket.emit("CLIENT_REFUSE_FRIEND", data.userIdA);
+        })
+    }
+})
+// END SERVER_RETURN_INFO_ACCEPT_FRIENDS
+
+// SERVER_RETURN_USER_ID_CANCEL_FRIEND
+socket.on("SERVER_RETURN_USER_ID_CANCEL_FRIEND", (data) => {
+    // userIdB để tìm vào danh sách của B
+    // userIdA để xóa A khỏi giao diện của B
+
+    const listAcceptFriends = document.querySelector(`[list-accept-friends="${data.userIdB}"]`);
+
+    if(listAcceptFriends){
+        const userA = listAcceptFriends.querySelector(`[user-id="${data.userIdA}"]`);
+        if(userA){
+            listAcceptFriends.removeChild(userA);
+        }
+    }
+})
+// END SERVER_RETURN_USER_ID_CANCEL_FRIEND
+
+// SERVER_RETURN_STATUS_ONLINE_USER
+socket.on("SERVER_RETURN_STATUS_ONLINE_USER", (data) => {
+    const listFriend = document.querySelector("[list-friend]");
+    
+    if(listFriend){
+        const user = listFriend.querySelector(`[user-id="${data.userId}"]`);
+
+        if(user){
+            const status = user.querySelector("[status]");
+            status.setAttribute("status", data.statusOnline);
+        }
+    }
+})
+// END SERVER_RETURN_STATUS_ONLINE_USER

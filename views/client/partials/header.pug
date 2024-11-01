@@ -10,7 +10,11 @@ header.header
               li 
                 a(href="/user/logout") Đăng xuất
               li
-                a(href="/chat") chat
+                a(href="/user/friends") Bạn bè
+              li
+                a(href="/user/rooms") Phòng chat
+              li
+                a(href="/user/info") #{user.fullName}
             else
               li 
                 a(href="/user/login") Đăng nhập

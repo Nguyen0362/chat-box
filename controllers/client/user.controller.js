@@ -3,6 +3,9 @@ const md5 = require('md5');
 const grenerateHelper = require('../../helpers/generate.helper');
 const { connection } = require('mongoose');
 
+const userSocket = require('../../sockets/user.socket');
+const RoomChat = require('../../model/rooms-chat.model');
+
 module.exports.register = (req, res) => {
     res.render("client/pages/user/register")
 }
@@ -69,52 +72,54 @@ module.exports.loginPost = async (req, res) => {
 
     res.cookie("tokenUser", existUser.token);
 
+    await User.updateOne({
+        email: email
+    }, {
+        statusOnline: "online"
+    })
+
+    _io.once("connection", (socket) => {
+        _io.emit("SERVER_RETURN_STATUS_ONLINE_USER", {
+            userId: existUser.id,
+            statusOnline: "online"
+        });
+    });
+
     req.flash("success", "Đăng nhập thành công!");
 
-    res.redirect("/chat");
+    res.redirect("/user/friends");
 
 }
 
 module.exports.logout = async (req, res) => {
+    await User.updateOne({
+        token: req.cookies.tokenUser
+    }, {
+        statusOnline: "offline"
+    });
+
+    const user = await User.findOne({
+        token: req.cookies.tokenUser,
+    });
+
+    _io.once("connection", (socket) => {
+        _io.emit("SERVER_RETURN_STATUS_ONLINE_USER", {
+          userId: user.id,
+          statusOnline: "offline"
+        })
+    })
+
     res.clearCookie("tokenUser");
+
+    req.flash("success", "Đã đăng xuất!");
+
     res.redirect("/user/login");
 }
 
 module.exports.notFriend = async (req, res) => {
     const userIdA = res.locals.user.id;
 
-    _io.once("connection", (socket) => {
-        // Khi A gửi yêu cầu cho B
-        socket.on("CLIENT_ADD_FRIEND", async (userIdB) => {
-            // Thêm id của A vào acceptFriends của B
-            const existAInB = await User.findOne({
-                _id: userIdB,
-                acceptFriends: userIdA
-            })
-
-            if(!existAInB){
-                await User.updateOne({
-                    _id: userIdB
-                }, {
-                    $push: {acceptFriends: userIdA}
-                })
-            }
-
-             // Thêm id của B vào requestFriends  của A
-             const existAInA = await User.findOne({
-                _id: userIdA,
-                requestFriends: userIdB
-            })
-
-            if(!existAInA){
-                await User.updateOne({
-                    _id: userIdA
-                }, {
-                    $push: {requestFriends: userIdB}
-                })
-            }
-        })
-    })
+    userSocket(req, res);
 
     const friendList = res.locals.user.friendsList;
     const friendListId = friendList.map(item => item.userId);
@@ -139,37 +144,7 @@ module.exports.notFriend = async (req, res) => {
 module.exports.request = async (req, res) => {
     const userIdA = res.locals.user.id;
 
-    _io.once("connection", (socket) => {
-        socket.on("CLIENT_CANCEL_FRIEND", async (userIdB) => {
-            // xóa id của A trong acceptFriends của B
-            const existAInB = await User.findOne({
-                _id: userIdB,
-                acceptFriends: userIdA
-            });
-
-            if(existAInB){
-                await User.updateOne({
-                    _id: userIdB
-                }, {
-                    $pull: {acceptFriends: userIdA}
-                })
-            }
-
-            // xóa id của B trong requestFriends của A
-            const existAInA = await User.findOne({
-                _id: userIdA,
-                requestFriends: userIdB
-            });
-
-            if(existAInA){
-                await User.updateOne({
-                    _id: userIdA
-                }, {
-                    $pull: {requestFriends: userIdB}
-                })
-            }
-        })
-    })
+   userSocket(req, res);
 
     const users = await User.find({
         _id: { $in: res.locals.user.requestFriends},
@@ -186,81 +161,7 @@ module.exports.request = async (req, res) => {
 module.exports.accept = async (req, res) => {
     const userIdA = res.locals.user.id;
 
-    _io.once("connection", (socket) => {
-        socket.on("CLIENT_REFUSE_FRIEND", async (userIdB) => {
-            //Xóa id của B trong acceptFriend của A
-            const existBInA = await User.findOne({
-                _id: userIdA,
-                acceptFriends: userIdB
-            });
-
-            if(existBInA){
-                await User.updateOne({
-                    _id: userIdA
-                }, {
-                    $pull: { acceptFriends: userIdB }
-                });
-            };
-
-            //Xóa id của A trong requestFriends của B
-            const existBInB = await User.findOne({
-                _id: userIdB,
-                requestFriends: userIdA
-            });
-
-            if(existBInB){
-                await User.updateOne({
-                    _id: userIdB
-                }, {
-                    $pull: { requestFriends: userIdA }
-                });
-            };
-        });
-
-        socket.on("CLIENT_ACCEPT_FRIEND", async (userIdB) => {
-            // Thêm {userId, roomChatId} của B vào friendsList của A
-            // Xóa id của B trong acceptFriends của A
-            const existBInA = await User.findOne({
-                _id: userIdA,
-                acceptFriends: userIdB
-            });
-
-            if(existBInA){
-                await User.updateOne({
-                    _id: userIdA
-                }, {
-                    $pull: { acceptFriends: userIdB },
-                    $push: { 
-                        friendsList: {
-                            userId: userIdB,
-                            roomChatId: ""
-                        }
-                    }
-                });
-            };
-
-            // Thêm {userId, roomChatId} của A vào friendsList của B
-            // Xóa id của A trong requestFriends của B
-            const existBInB = await User.findOne({
-                _id: userIdB,
-                requestFriends: userIdA
-            });
-
-            if(existBInB){
-                await User.updateOne({
-                    _id: userIdB
-                }, {
-                    $pull: { requestFriends: userIdA },
-                    $push: { 
-                        friendsList: {
-                            userId: userIdA,
-                            roomChatId: ""
-                        }
-                    }
-                });
-            };
-        });
-    });
+    userSocket(req, res);
 
     const users = await User.find({
         _id: { $in: res.locals.user.acceptFriends},
@@ -278,15 +179,95 @@ module.exports.friends = async (req, res) => {
 
     const friendList = res.locals.user.friendsList;
     const friendListId = friendList.map(item => item.userId);
-    
-    const users = await User.find({
-        _id: { $in: friendListId},
-        deleted: false,
-        status: "active"
-    }).select("id fullName avatar");
+
+    const users = [];
+
+    for(const user of friendList){
+        const infoUser = await User.findOne({
+            _id: user.userId,
+            deleted: false,
+            status: "active"
+        });
+
+        users.push({
+            id: infoUser.id,
+            fullName: infoUser.fullName,
+            avatar: infoUser.avatar,
+            statusOnline: infoUser.statusOnline,
+            roomChatId: user.roomChatId
+        });
+    }
 
     res.render("client/pages/user/friends", {
         pageTitle: "Danh sách bạn bè",
         users: users
     })
 }
+
+module.exports.rooms = async (req, res) => {
+    const listRoomChat = await RoomChat.find({
+        "users.userId": res.locals.user.id,
+        typeRoom: "group",
+        deleted: false
+    })
+
+    res.render("client/pages/user/rooms", {
+        pageTitle: "Phòng chat",
+        listRoomChat: listRoomChat
+    });
+}
+
+module.exports.createRoom = async (req, res) => {
+    const friendsList = res.locals.user.friendsList;
+    
+    const friendsListFinal = [];
+
+    for(const friend of friendsList){
+        const infoFriend = await User.findOne({
+            _id: friend.userId,
+            deleted: false
+        });
+
+        if(infoFriend){
+            friendsListFinal.push({
+                userId: friend.userId,
+                fullName: infoFriend.fullName
+            });
+        }
+    }
+
+    res.render("client/pages/user/create-room", {
+        pageTitle: "Tạo phòng chat",
+        friendList: friendsListFinal
+    });
+}
+
+module.exports.createRoomPost = async (req, res) => {
+    const title = req.body.title;
+    const usersId = req.body.usersId;
+
+    const dataRoom = {
+        title: title,
+        typeRoom: "group",
+        users: []
+    };
+
+    dataRoom.users.push({
+        userId: res.locals.user.id,
+        role: "superAdmin"
+    });
+
+
+    for(const userId of usersId){
+        dataRoom.users.push({
+            userId: userId,
+            role: "user"
+        });
+    }
+
+    const room = new RoomChat(dataRoom);
+    await room.save();
+
+    res.redirect(`/chat/${room.id}`);
+}
+

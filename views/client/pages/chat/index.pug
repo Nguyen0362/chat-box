@@ -8,7 +8,10 @@ block main
 
         .row 
             .col-12 
-                +box-head(pageTitle)
+                if(roomChat.title)
+                    +box-head(roomChat.title)
+                else 
+                    +box-head(pageTitle)
         
         .row
             .col-12
